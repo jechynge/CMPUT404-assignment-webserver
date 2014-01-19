@@ -1,4 +1,6 @@
 import SocketServer
+import re
+import os.path
 # coding: utf-8
 
 # Copyright 2013 Abram Hindle, Eddie Antonio Santos
@@ -17,7 +19,7 @@ import SocketServer
 #
 #
 # Furthermore it is derived from the Python documentation examples thus
-# some of the code is Copyright © 2001-2013 Python Software
+# some of the code is Copyright  2001-2013 Python Software
 # Foundation; All Rights Reserved
 #
 # http://docs.python.org/2/library/socketserver.html
@@ -29,10 +31,58 @@ import SocketServer
 
 class MyWebServer(SocketServer.BaseRequestHandler):
     
+    okResponseHeader = "HTTP/1.1 200 OK"
+    badRequestResponse = "HTTP/1.1 400 Bad Request\nContent-Length:145\nContent-Type:text/html;\n\n<!DOCTYPE html>\n<html><head><title>Bad Request</title></head><body><h1>400: Bad Request</h1>This server only supports GET requests.</body></html>"
+    notFoundResponse = "HTTP/1.1 404 Not Found\nContent-Length:154\nContent-Type:text/html;\n\n<!DOCTYPE html>\n<html><head><title>Page Not Found</title></head><body><h1>404: Page Not Found</h1>The page you requested could not be found.</body></html>"
+    
     def handle(self):
         self.data = self.request.recv(1024).strip()
         print ("Got a request of: %s\n" % self.data)
-        self.request.sendall("OK")
+        headers = self.data.split("\n")
+        request = headers[0].split(" ")
+        if(request[0] == "GET"):
+            print ("{"+request[1]+"}")
+            response = self.handleGet(request[1])
+        else:
+            self.request.sendall(self.badRequestResponse)
+            return
+        
+        if(response is None):
+            self.request.sendall(self.notFoundResponse)
+            return
+        
+        self.request.sendall(response)
+        
+        
+    def handleGet(self,requestedFile):
+        requestedFile = "www" + requestedFile
+        if(re.match('.*\/$', requestedFile)):
+            requestedFile += "index.html"
+            
+        if(os.path.isfile(requestedFile)):
+            contentFile = open(requestedFile, 'r')
+            content = contentFile.read()
+            contentFile.close()
+        else:
+            return None
+        
+        contentLength = len(content)
+        response = self.okResponseHeader
+        response += "\nContent-Length: " + str(contentLength)
+        if(re.match('.*\.htm(l)?$',requestedFile)):
+            response += "\nContent-Type: text/html"
+        elif(re.match('.*\.css$',requestedFile)):
+            response += "\nContent-Type: text/css"
+        else:
+            return None
+        
+        response += "\n\n" + content
+        
+        return response
+        
+    def sendReply(self, header, body):
+        contentLength = len(body)
+        
 
 if __name__ == "__main__":
     HOST, PORT = "localhost", 8080
