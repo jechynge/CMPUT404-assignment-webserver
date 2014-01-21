@@ -3,7 +3,7 @@ import re
 import os.path
 # coding: utf-8
 
-# Copyright 2013 Abram Hindle, Eddie Antonio Santos
+# Copyright 2013 Abram Hindle, Eddie Antonio Santos, Jordan Ching
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -37,6 +37,7 @@ class MyWebServer(SocketServer.BaseRequestHandler):
     serverDirectory = ""
     
     def __init__(self, request, client_address, server):
+        # Figure out where the server is running.
         self.serverDirectory = re.escape(os.path.dirname(os.path.abspath(__file__)) + '/www/')
         SocketServer.BaseRequestHandler.__init__(self, request, client_address, server)
     
